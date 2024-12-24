@@ -7,14 +7,16 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
+            background-color: #f9f9f9;
             margin: 0;
             padding: 0;
         }
         .container {
             width: 80%;
-            margin: 0 auto;
-            padding-top: 30px;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
         h1 {
             text-align: center;
@@ -22,72 +24,75 @@
         }
         .item-list, .order-summary {
             width: 100%;
-            margin-top: 20px;
-        }
-        .item-list th, .order-summary th {
-            text-align: left;
-            padding: 10px;
-            background-color: #4CAF50;
-            color: white;
+            margin: 20px 0;
         }
         .item-list td, .order-summary td {
-            padding: 10px;
-            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
         }
-        .order-summary td {
-            text-align: right;
-        }
-        input[type="number"], select {
+        .item-list input[type="number"] {
+            width: 60px;
             padding: 5px;
-            width: 100px;
+            text-align: center;
         }
         .btn {
             background-color: #4CAF50;
             color: white;
-            padding: 10px 15px;
+            padding: 10px;
             border: none;
             cursor: pointer;
             font-size: 16px;
+            width: 100%;
         }
         .btn:hover {
             background-color: #45a049;
         }
-        .order-copy {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
+        .order-summary {
+            margin-top: 10px;
         }
-        .order-copy textarea {
+        .order-summary th {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px;
+        }
+        .order-summary td {
+            text-align: right;
+        }
+        #orderCopyTextarea {
             width: 100%;
             height: 150px;
+            margin-top: 10px;
+        }
+        .discount {
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Cash Register POS System</h1>
-
-    <div class="item-list">
-        <h2>Select Items</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Item</th>
-                    <th>Price</th>
-                    <th>Quantity</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="itemListBody">
-                <!-- Dynamic Item List will be generated here -->
-            </tbody>
-        </table>
-    </div>
+    <h1>Cash Register POS</h1>
+    
+    <table class="item-list">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Price</th>
+                <th>Quantity</th>
+            </tr>
+        </thead>
+        <tbody id="itemListBody">
+            <!-- Items will be listed here -->
+        </tbody>
+    </table>
 
     <div class="order-summary">
-        <h2>Order Summary</h2>
+        <h3>Order Summary</h3>
         <table>
             <thead>
                 <tr>
@@ -97,17 +102,24 @@
                 </tr>
             </thead>
             <tbody id="orderSummaryBody">
-                <!-- Dynamic Order Summary will be generated here -->
+                <!-- Order summary will appear here -->
             </tbody>
         </table>
-        <p><strong>Total Amount: $<span id="totalAmount">0.00</span></strong></p>
+        <p><strong>Total: $<span id="totalAmount">0.00</span></strong></p>
+        <p class="discount">
+            <button class="btn" onclick="applyDiscount()">Apply 10% Discount</button>
+        </p>
     </div>
 
     <button class="btn" onclick="copyOrder()">Copy Order Sheet</button>
-
-    <div class="order-copy" id="orderCopy">
+    
+    <div class="order-summary">
         <h3>Order Copy</h3>
         <textarea id="orderCopyTextarea" readonly></textarea>
+    </div>
+
+    <div class="footer">
+        <button class="btn" onclick="clearOrder()">Clear Order</button>
     </div>
 </div>
 
@@ -148,7 +160,7 @@ const items = [
     { name: "Item 32", price: 7.25 }
 ];
 
-// Function to generate the item list
+// Generate item list dynamically
 function generateItemList() {
     const itemListBody = document.getElementById("itemListBody");
     items.forEach((item, index) => {
@@ -157,7 +169,6 @@ function generateItemList() {
             <td>${item.name}</td>
             <td>$${item.price.toFixed(2)}</td>
             <td><input type="number" id="quantity-${index}" value="0" min="0"></td>
-            <td><button class="btn" onclick="addToOrder(${index})">Add</button></td>
         `;
         itemListBody.appendChild(row);
     });
@@ -166,40 +177,44 @@ function generateItemList() {
 // Add item to the order
 let order = [];
 
-function addToOrder(itemIndex) {
-    const quantity = parseInt(document.getElementById(`quantity-${itemIndex}`).value);
-    if (quantity > 0) {
-        order.push({ item: items[itemIndex], quantity });
-        updateOrderSummary();
-    }
-}
-
-// Update the order summary
-function updateOrderSummary() {
+function addToOrder() {
+    order = [];
     const orderSummaryBody = document.getElementById("orderSummaryBody");
     const totalAmountElem = document.getElementById("totalAmount");
 
-    // Clear the current summary
+    // Clear current order summary
     orderSummaryBody.innerHTML = "";
     let totalAmount = 0;
 
-    order.forEach((orderItem) => {
-        const itemTotal = orderItem.item.price * orderItem.quantity;
-        totalAmount += itemTotal;
+    items.forEach((item, index) => {
+        const quantity = parseInt(document.getElementById(`quantity-${index}`).value);
+        if (quantity > 0) {
+            const itemTotal = item.price * quantity;
+            totalAmount += itemTotal;
 
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${orderItem.item.name}</td>
-            <td>${orderItem.quantity}</td>
-            <td>$${itemTotal.toFixed(2)}</td>
-        `;
-        orderSummaryBody.appendChild(row);
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${item.name}</td>
+                <td>${quantity}</td>
+                <td>$${itemTotal.toFixed(2)}</td>
+            `;
+            orderSummaryBody.appendChild(row);
+            order.push({ item, quantity });
+        }
     });
 
     totalAmountElem.innerText = totalAmount.toFixed(2);
 }
 
-// Copy the order summary as text
+// Apply 10% discount
+function applyDiscount() {
+    const totalAmountElem = document.getElementById("totalAmount");
+    let totalAmount = parseFloat(totalAmountElem.innerText);
+    let discountedAmount = totalAmount * 0.9;  // Apply 10% discount
+    totalAmountElem.innerText = discountedAmount.toFixed(2);
+}
+
+// Copy order summary to textarea
 function copyOrder() {
     let orderCopyText = "Order Summary:\n";
     let totalAmount = 0;
@@ -215,8 +230,21 @@ function copyOrder() {
     document.getElementById("orderCopyTextarea").value = orderCopyText;
 }
 
-// Initialize the item list
+// Clear the order
+function clearOrder() {
+    order = [];
+    document.getElementById("orderSummaryBody").innerHTML = "";
+    document.getElementById("totalAmount").innerText = "0.00";
+    document.getElementById("orderCopyTextarea").value = "";
+}
+
+// Generate item list on page load
 generateItemList();
+
+// Add event listeners to update order
+document.querySelectorAll('input[type="number"]').forEach(input => {
+    input.addEventListener('change', addToOrder);
+});
 </script>
 
 </body>
