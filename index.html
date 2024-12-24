@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cash Register POS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding-top: 30px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .item-list, .order-summary {
+            width: 100%;
+            margin-top: 20px;
+        }
+        .item-list th, .order-summary th {
+            text-align: left;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+        }
+        .item-list td, .order-summary td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        .order-summary td {
+            text-align: right;
+        }
+        input[type="number"], select {
+            padding: 5px;
+            width: 100px;
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .order-copy {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+        }
+        .order-copy textarea {
+            width: 100%;
+            height: 150px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Cash Register POS System</h1>
+
+    <div class="item-list">
+        <h2>Select Items</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="itemListBody">
+                <!-- Dynamic Item List will be generated here -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="order-summary">
+        <h2>Order Summary</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Quantity</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody id="orderSummaryBody">
+                <!-- Dynamic Order Summary will be generated here -->
+            </tbody>
+        </table>
+        <p><strong>Total Amount: $<span id="totalAmount">0.00</span></strong></p>
+    </div>
+
+    <button class="btn" onclick="copyOrder()">Copy Order Sheet</button>
+
+    <div class="order-copy" id="orderCopy">
+        <h3>Order Copy</h3>
+        <textarea id="orderCopyTextarea" readonly></textarea>
+    </div>
+</div>
+
+<script>
+// Define the items for sale (32 items)
+const items = [
+    { name: "Item 1", price: 5.00 },
+    { name: "Item 2", price: 7.50 },
+    { name: "Item 3", price: 10.00 },
+    { name: "Item 4", price: 15.00 },
+    { name: "Item 5", price: 20.00 },
+    { name: "Item 6", price: 2.50 },
+    { name: "Item 7", price: 8.00 },
+    { name: "Item 8", price: 12.00 },
+    { name: "Item 9", price: 3.75 },
+    { name: "Item 10", price: 9.99 },
+    { name: "Item 11", price: 14.50 },
+    { name: "Item 12", price: 4.00 },
+    { name: "Item 13", price: 6.75 },
+    { name: "Item 14", price: 11.25 },
+    { name: "Item 15", price: 5.50 },
+    { name: "Item 16", price: 7.00 },
+    { name: "Item 17", price: 13.25 },
+    { name: "Item 18", price: 16.75 },
+    { name: "Item 19", price: 18.00 },
+    { name: "Item 20", price: 9.00 },
+    { name: "Item 21", price: 3.00 },
+    { name: "Item 22", price: 4.75 },
+    { name: "Item 23", price: 6.25 },
+    { name: "Item 24", price: 8.50 },
+    { name: "Item 25", price: 10.75 },
+    { name: "Item 26", price: 11.99 },
+    { name: "Item 27", price: 14.00 },
+    { name: "Item 28", price: 2.99 },
+    { name: "Item 29", price: 5.99 },
+    { name: "Item 30", price: 6.50 },
+    { name: "Item 31", price: 12.50 },
+    { name: "Item 32", price: 7.25 }
+];
+
+// Function to generate the item list
+function generateItemList() {
+    const itemListBody = document.getElementById("itemListBody");
+    items.forEach((item, index) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${item.name}</td>
+            <td>$${item.price.toFixed(2)}</td>
+            <td><input type="number" id="quantity-${index}" value="0" min="0"></td>
+            <td><button class="btn" onclick="addToOrder(${index})">Add</button></td>
+        `;
+        itemListBody.appendChild(row);
+    });
+}
+
+// Add item to the order
+let order = [];
+
+function addToOrder(itemIndex) {
+    const quantity = parseInt(document.getElementById(`quantity-${itemIndex}`).value);
+    if (quantity > 0) {
+        order.push({ item: items[itemIndex], quantity });
+        updateOrderSummary();
+    }
+}
+
+// Update the order summary
+function updateOrderSummary() {
+    const orderSummaryBody = document.getElementById("orderSummaryBody");
+    const totalAmountElem = document.getElementById("totalAmount");
+
+    // Clear the current summary
+    orderSummaryBody.innerHTML = "";
+    let totalAmount = 0;
+
+    order.forEach((orderItem) => {
+        const itemTotal = orderItem.item.price * orderItem.quantity;
+        totalAmount += itemTotal;
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${orderItem.item.name}</td>
+            <td>${orderItem.quantity}</td>
+            <td>$${itemTotal.toFixed(2)}</td>
+        `;
+        orderSummaryBody.appendChild(row);
+    });
+
+    totalAmountElem.innerText = totalAmount.toFixed(2);
+}
+
+// Copy the order summary as text
+function copyOrder() {
+    let orderCopyText = "Order Summary:\n";
+    let totalAmount = 0;
+
+    order.forEach((orderItem) => {
+        const itemTotal = orderItem.item.price * orderItem.quantity;
+        totalAmount += itemTotal;
+        orderCopyText += `${orderItem.item.name} x${orderItem.quantity} - $${itemTotal.toFixed(2)}\n`;
+    });
+
+    orderCopyText += `\nTotal: $${totalAmount.toFixed(2)}\n`;
+
+    document.getElementById("orderCopyTextarea").value = orderCopyText;
+}
+
+// Initialize the item list
+generateItemList();
+</script>
+
+</body>
+</html>
